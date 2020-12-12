@@ -1,0 +1,4 @@
+"dependencies" : {
+  "name1" : "git://github.com/niklasf/pythonchess/releases/tag/v1.3.",
+  "Flask" : "git://github.com/pallets/flask/tree/1.1.2"
+}
