@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Chess Tutor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      .container {
+           max-width: 450px;
+           position: center;
+           margin: 0 auto;
+      }
+      
+      .selectionbox{
+          padding-bottom: 5px;
+          display: flex;
+      }
+      
+      .textlabeldiv
+      {
+          width: 220px;
+      }
+      
+      
+      .textboxdiv
+      {
+          width: 30px;
+      }
+      
+      .movetextbox
+      {
+          width: 30px;
+      }
+         
+    </style>
+    <script>
+    
+    function textboxChanged(Element){
+        var str = Element.value;
+        Element.value = str.substr(0,4);
+        str =  Element.value;
+        
+        var patt = new RegExp("[abcdefghABCDEFGH][123456789][abcdefghABCDEFGH][123456789]");
+        var res = patt.test(str);
+        
+        if (res == false){
+                Element.value = "";
+                alert("Please Enter UCI notation. For Example A1A8");
+        }
+        
+    }
+    
+    var press = 0;
+    
+    function disableButton(Element){
+        press = press + 1;
+        Element.value = "Processing";
+        if (press == 2){
+            Element.disabled = true;
+        }
+    }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      {% if board %}
+              {{board}}
+      {% endif %}
+      <br>
+      <form role="form" method='POST' action='/game'>
+        <div class="selectionbox">
+            <div class="textlabeldiv">
+                Type in your next move in UCI:
+            </div>
+
+            <div class="textboxdiv">
+                <input class="movetextbox" type="text" name="nextmove" id="nextmove"  onchange="textboxChanged(this)"></input>
+            </div>
+        </div>
+        <input type="submit" id="submitbutton" name="submitbutton" onclick="disableButton(this)">
+        <input type="submit" id="resetbutton" name="resetbutton" value="Reset">
+      </form>
+      <br>
+      {% autoescape false %}
+          {% if errors %}
+              ADVICE: <br>
+              {{errors}}
+          {% endif %}
+      {% endautoescape %}
+      {% autoescape false %}
+          {% if tutors %}
+              ADVICE: <br>
+              {{tutors}}
+          {% endif %}
+      {% endautoescape %}
+    </div>
+    <script src="//code.jquery.com/jquery-2.2.1.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+  </body>
+</html>

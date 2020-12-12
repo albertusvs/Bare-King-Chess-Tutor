@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Chess Tutor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      .container {
+           max-width: 450px;
+           position: center;
+           margin: 0 auto;
+      }
+      
+      .selectionbox{
+          padding-bottom: 5px;
+          display: flex;
+      }
+      
+      .textlabeldiv
+      {
+          width: 150px;
+      }
+      
+      .checkboxdiv
+      {
+          width: 30px;
+      }
+      
+      .textboxdiv
+      {
+          width: 30px;
+      }
+      
+      .positiontextbox
+      {
+          width: 30px;
+      }
+         
+    </style>
+    <script>
+    function checkboxClick(Element){
+        var checkboxes = document.querySelectorAll('.checkboxdiv input[type="checkbox"]:checked');
+        if (checkboxes.length > 3){
+            Element.checked = false;
+        }    
+    }
+    
+    
+    function textboxChanged(Element){
+        var str = Element.value;
+        Element.value = str.substr(0,2);
+        str =  Element.value;
+        
+        var patt = new RegExp("[abcdefghABCDEFGH][123456789]");
+        var res = patt.test(str);
+        
+        if (res == false){
+                Element.value = "";
+                alert("Please Enter Valid Position Starting With A Letter From A to H and A Number from 1 to 8");
+        }
+        
+        if (Element.id == "bishopblackposition"){
+                var res2 = str.charAt(0);
+                var res3 = str.charAt(1);
+                if (res2 == "a" || res2 == "c" || res2 =="e" || res2 =="g" ){
+                   if (res3 == "2" || res3 == "4" || res3 == "6" || res3 == "8"){
+                       alert("Please Place Black Bishop On A Black Space");
+                       Element.value = "";
+                   }
+                   
+                }
+                
+                if (res2 == "b" || res2 == "d" || res2 =="f" || res2 =="h" ){
+                   if (res3 == "1" || res3 == "3" || res3 == "5" || res3 == "7"){
+                       alert("Please Place Black Bishop On A Black Space");
+                       Element.value = "";
+                   }
+                   
+                }
+        }
+        
+        if (Element.id == "bishopwhiteposition"){
+                var res2 = str.charAt(0);
+                var res3 = str.charAt(1);
+                if (res2 == "a" || res2 == "c" || res2 =="e" || res2 =="g" ){
+                   if (res3 == "1" || res3 == "3" || res3 == "5" || res3 == "7"){
+                       alert("Please Place White Square Bishop On A White Square");
+                       Element.value = "";
+                   }
+                   
+                }
+                
+                if (res2 == "b" || res2 == "d" || res2 =="f" || res2 =="h" ){
+                   if (res3 == "2" || res3 == "4" || res3 == "6" || res3 == "8"){
+                       alert("Please Place White Square Bishop On A White Square");
+                       Element.value = "";
+                   }
+                   
+                }
+        }
+        
+    }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      Please select up to 3 pieces and enter positions:
+      <br>
+      {% if board %}
+              {{board}}
+      {% endif %}
+      <br>
+      <form role="form" method='POST' action='/'>
+        <div class="selectionbox">
+            <div class="textlabeldiv">
+                King
+            </div>
+            <div class="checkboxdiv":>
+                
+            </div>
+            <div class="textboxdiv">
+                <input class="positiontextbox" type="text" name="kingposition" id="kingposition"  onchange="textboxChanged(this)"></input>
+            </div>
+        </div>
+        <div class="selectionbox">
+            <div class="textlabeldiv">
+                Rook 1
+            </div>
+            <div class="checkboxdiv">
+                <input type="checkbox" name="rook1" id="rook1" onclick="checkboxClick(this)"></input>
+            </div>
+            <div class="textboxdiv">
+                <input class="positiontextbox" type="text" name="rook1position" id="rook1position" onchange="textboxChanged(this)"></input>
+            </div>
+        </div>
+        <div class="selectionbox">
+            <div class="textlabeldiv">
+                Rook 2
+            </div>
+            <div class="checkboxdiv">
+            <input type="checkbox" name="rook2" id="rook2" onclick="checkboxClick(this)"></input>
+            </div>
+            <div class="textboxdiv">
+            <input class="positiontextbox" type="text" name="rook2position" id="rook2position"  onchange="textboxChanged(this)"></input>
+            </div>
+        </div>
+        <div class="selectionbox">
+            <div class="textlabeldiv">
+                Bishop White Square
+            </div>
+            <div class="checkboxdiv">
+                <input type="checkbox" name="bishopwhite" id="bishopwhite" onclick="checkboxClick(this)"></input>
+            </div>
+            <div class="textboxdiv">
+                <input class="positiontextbox" type="text" name="bishopwhitepostion" id="bishopwhiteposition"  onchange="textboxChanged(this)"></input>
+            </div>
+        </div>
+        <div class="selectionbox">
+            <div class="textlabeldiv">
+                Bishop Black Square
+            </div>
+            <div class="checkboxdiv" >
+                <input type="checkbox" name="bishopblack" id="bishopblack" onclick="checkboxClick(this)" ></input>
+            </div>
+            <div class="textboxdiv" >
+                <input class="positiontextbox" type="text" name="bishopblackposition" id="bishopblackposition" onchange="textboxChanged(this)"></input>
+            </div>
+        </div>
+        <div class="selectionbox">
+            <div class="textlabeldiv">
+                Horse 1
+            </div>
+            <div class="checkboxdiv">
+                <input type="checkbox" name="horse1" id="horse1" onclick="checkboxClick(this)"></input>
+            </div>
+            <div class="textboxdiv">
+                <input class="positiontextbox" type="text" name="horse1position" id="horse1position"  onchange="textboxChanged(this)"></input>
+            </div>
+        </div>
+        <div class="selectionbox">
+            <div class="textlabeldiv">
+                Horse 2
+            </div>
+            <div class="checkboxdiv">
+                <input type="checkbox" name="horse2" id="horse2" onclick="checkboxClick(this)"></input>
+            </div>
+            <div class="textboxdiv">
+                <input class="positiontextbox" type="text" name="horse2position"  id="horse2position"  onchange="textboxChanged(this)"></input>
+            </div>
+        </div>
+        <div class="selectionbox">
+            <div class="textlabeldiv">
+                Queen
+            </div>
+            <div class="checkboxdiv":>
+                <input type="checkbox" name="queen" id="queen" onclick="checkboxClick(this)"></input>
+            </div>
+            <div class="textboxdiv">
+                <input class="positiontextbox" type="text" name="queenposition" id="queenposition"  onchange="textboxChanged(this)"></input>
+            </div>
+        </div>
+        <div class="selectionbox">
+            <div class="textlabeldiv">
+                Opposing King
+            </div>
+            <div class="checkboxdiv":>
+                
+            </div>
+            <div class="textboxdiv">
+                <input class="positiontextbox" type="text" name="oppkingpostion" id="oppkingposition"  onchange="textboxChanged(this)"></input>
+            </div>
+        </div>
+        <input type="submit" onclick="checkValues">
+      </form>
+      <br>
+      {% autoescape false %}
+          {% if errors %}
+              ADVICE: <br>
+              {{errors}}
+          {% endif %}
+      {% endautoescape %}
+    </div>
+    <script src="//code.jquery.com/jquery-2.2.1.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+  </body>
+</html>
