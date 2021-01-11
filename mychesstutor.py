@@ -156,6 +156,7 @@ def setup_submit():
     global positionking 
     global positionoppking 
     global gameboard
+    global initialboard
     
     position1 = ''
     position2 = ''
@@ -361,6 +362,7 @@ def game_move():
         
         #Tutor 9. Move pieces to apply more pressure
         if nextmove in gameboard.legal_moves and gameboard.piece_at(nextmove.from_square).piece_type != chess.KING:
+            print('ping')
             gameboard.push(chess.Move.null())
             legalblackmovesbefore = list(gameboard.legal_moves)
             beforecount = len(legalblackmovesbefore)
@@ -410,7 +412,7 @@ def game_move():
             
             #Tutor 10, Miss Check Part 2
             if checkmove != nextmove and checkmove !='':
-                error = "You could have Checked Black within 1 move <br>"
+                error = "You could have Checkmated Black within 1 move <br>"
     
             if AItype == 3 : #Legacy Value
                #Tutor 10, Check move missed part 1
