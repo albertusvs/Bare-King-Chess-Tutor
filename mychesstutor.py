@@ -6,7 +6,7 @@ This is a temporary script file.
 """
 
 import chess, chess.pgn, chess.svg
-from flask import Flask,render_template, request, Markup, redirect
+from flask import Flask,render_template, request, Markup, redirect, render_template_string
 import random
 
 app = Flask(__name__)
@@ -22,6 +22,8 @@ positionking = ''
 positionoppking = ''
 # AI Type 1= Random 2 = Avoid Corners 3 = Avoid Check
 AItype = 1
+checkmove = ''
+initialboard = ''
 
 gameboard = chess.Board(None) 
 
@@ -128,11 +130,14 @@ def setup():
     global position3
     global positionking
     global positionoppking
+    global checkmove
+    global initialboard
     position1 = ''
     position2 = ''
     position3 = ''
     positionking = ''
     positionoppking = ''
+    checkmove = ''
     global gameboard
     gameboard.clear_board()
     gameboard = chess.Board(None)
@@ -145,12 +150,21 @@ def setup():
 # If CORRECT: Redirects to Playing Page
 @app.route('/', methods=['POST', 'GET'])
 def setup_submit():
-    global position1
-    global postiion2
-    global position3
-    global positionking
-    global positionoppking
+    global position1 
+    global postiion2 
+    global position3 
+    global positionking 
+    global positionoppking 
     global gameboard
+    
+    position1 = ''
+    position2 = ''
+    position3 = ''
+    positionking = ''
+    positionoppking = ''
+    gameboard.clear_board()
+    gameboard = chess.Board(None)
+    
     global AItype
     
     #Loads positions into variables
@@ -205,15 +219,18 @@ def setup_submit():
         
         #Check to make sure that the Opposite Black King does not start in Check
         if gameboard.is_attacked_by(chess.WHITE, chess.parse_square(positionoppking)):
-            error += 'The initial setup cannot place the Opposing Black King already in Check'
+            gameboard.push(chess.Move.null())
+            if not gameboard.is_checkmate():
+                error += 'The initial setup cannot place the Opposing Black King already in Check <br>'
+            gameboard.pop()
         
         #Temporarily moves the turn to the opposing Black side and performs Checkmate and Stalemate checking
         gameboard.push(chess.Move.null())
         if gameboard.is_checkmate():
-            error += ' The initial setup cannot place the Opposing Black King already in Checkmate'
+            error += ' The initial setup cannot place the Opposing Black King already in Checkmate <br>'
         
         if gameboard.is_stalemate():
-            error += ' The initial setup cannot place the Opposing Black King already in Stalemate'
+            error += ' The initial setup cannot place the Opposing Black King already in Stalemate <br>'
         
         gameboard.pop()
         
@@ -225,6 +242,7 @@ def setup_submit():
             gameboard.clear()
             return render_template('chess.html', errors = error, board = Markup(chess.svg.board(gameboard, size = 350)))
         else :
+            initialboard = chess.svg.board(gameboard, size = 350)
             return redirect('/game')
 
 @app.route('/game')
@@ -240,7 +258,9 @@ def game():
 @app.route('/game', methods=['POST', 'GET'])
 def game_move():
     global gameboard
+    global initialboard
     global AItype
+    global checkmove
     
     if request.form.get("resetbutton"):
         gameboard.clear()
@@ -339,27 +359,46 @@ def game_move():
                 if kingnotapplyingpressure == True:
                     error += "Apply more pressure with your King <br>"
         
-        #Tutor 5: Move away threatened piece
-        for square in range(64):
-            if gameboard.piece_at(square) and gameboard.color_at(square) == chess.WHITE and gameboard.is_attacked_by(chess.BLACK, square):
-                if nextmove.from_square != square:
-                    error += 'Must move piece threatened by King <br>'
-                    return render_template('game.html', board = Markup(chess.svg.board(gameboard, size = 350)), errors = error)       
-                            
-        
+        #Tutor 9. Move pieces to apply more pressure
+        if nextmove in gameboard.legal_moves and gameboard.piece_at(nextmove.from_square).piece_type != chess.KING:
+            gameboard.push(chess.Move.null())
+            legalblackmovesbefore = list(gameboard.legal_moves)
+            beforecount = len(legalblackmovesbefore)
+            gameboard.pop()
+            minimummovescount = beforecount
+            for moves in gameboard.legal_moves:
+                gameboard.push(moves)
+                legalblackmovesafter = list(gameboard.legal_moves)
+                aftercount = len(legalblackmovesafter)
+                if aftercount < minimummovescount:
+                    minimummovescount = aftercount
+                gameboard.pop()
+            
+            gameboard.push(nextmove)
+            legalblackmovesafter= list(gameboard.legal_moves)
+            movesafter = len(legalblackmovesafter)
+            gameboard.pop()
+            if minimummovescount < movesafter :
+                error += "There were moves that restricted the Black King more available. <br>"  
+                                
         if nextmove in gameboard.legal_moves:
             #Make(Push) Player's next move
             gameboard.push(nextmove)
             
             #Check if the game has ended either in a Draw or Checkmate
             if gameboard.is_game_over() and not gameboard.can_claim_draw():
-                gamehistory = 'You win by Checkmate !!!<br>'
+                gamehistory = 'You win by Checkmate !!!<br> Initial Board Setup: <br>'
+                gamehistory += initialboard
+                gamehistory += '<br>'
                 gamehistory += 'Moves played in this game <br>:'
                 
                 for i in gameboard.move_stack:
                     gamehistory += gameboard.uci(i) + '<br>'
+                    
+                gamehistory += 'Final Board Positions: <br>'
+                gamehistory += chess.svg.board(gameboard, size = 350)
                 gameboard.clear_board()
-                return gamehistory
+                return Markup(gamehistory)
             if gameboard.can_claim_draw() or gameboard.is_stalemate() or gameboard.is_insufficient_material():
                gamehistory = 'It is a draw )-:!<br>'
                gamehistory += 'Moves played in this game <br>:'
@@ -368,72 +407,115 @@ def game_move():
                    gamehistory += gameboard.uci(i) + '<br>'
                gameboard.clear_board()
                return gamehistory
-                
+            
+            #Tutor 10, Miss Check Part 2
+            if checkmove != nextmove and checkmove !='':
+                error = "You could have Checked Black within 1 move <br>"
     
-            if AItype == 3 :
+            if AItype == 3 : #Legacy Value
+               #Tutor 10, Check move missed part 1
                #Search is done to depth of 5 for performance reasons. It is not implemented as a recursive function for performance reasons. 
+               checkmove = ''
                checkmate = False 
                startblack = list(gameboard.legal_moves)
-               print(startblack)
                #Assign Next Blackmove to Random Move
                blackmove = startblack[random.randint(0,len(startblack)-1)]
+               
+               #Initialize empty lists for the probability of the next possible moves leading to Checkmate or Draw
                drawposibilities = list()
                checkposibilities = list()
+               
+               #Iterate through Possible Next Moves
                for firstblackmove in gameboard.legal_moves:
+                   
+                   #Set Initial Probability of Check and Draw to 0
                    drawposibilities.append(0)
                    checkposibilities.append(0)
+                   
+                   #Play Next Move (first move)
                    gameboard.push(firstblackmove)
+                   
+                   #If The Move Leads to a Draw, set that as the Next Move aand Exit Loop
                    if gameboard.can_claim_draw():
                        blackmove = firstblackmove
                        gameboard.pop()
                        drawposibilities[startblack.index(firstblackmove)] = 1
                        break
+                   
                    else:
+                       #Generate List of Possible White Moves in Response to the Black White
                        firstmovelegalmoves = list(gameboard.legal_moves)
+                       
+
+                       #Initialize Probability List of First White Move After Black Move Leading to Checkmate or Draw
                        firstmovedrawposibilities = list()
                        firstmovecheckposibilities = list()
+                       
+                       
                        for firstwhitemove in gameboard.legal_moves:
+                           #Plays Next Move (second move)
                            gameboard.push(firstwhitemove)
+                           
+                           #Set Initial Probability of Check and Draw to 0
                            firstmovedrawposibilities.append(0)
                            firstmovecheckposibilities.append(0)
+                           
+                           #If the Move leads to a Draw set the Probability of a Draw to 1
                            if gameboard.can_claim_draw():
                                firstmovedrawposibilities[firstmovelegalmoves.index(firstwhitemove)] = 1
+                           
+                           #If the Move leads to a Draw set the Probability of a Checkmate to 1
                            if gameboard.is_checkmate():
                                checkmate = True
+                               checkmove = firstwhitemove
                                firstmovecheckposibilities[firstmovelegalmoves.index(firstwhitemove)] = 1
                            else:
                                 for secondblackmove in gameboard.legal_moves:
+                                    
+                                    #Play Next Move (third move)
                                     gameboard.push(secondblackmove)
+                                    
+                                    #If the Move leads to a Draw set the Probability of a Draw to 1
                                     if gameboard.can_claim_draw():
                                         firstmovedrawposibilities[firstmovelegalmoves.index(firstwhitemove)] = 1
-                                    if gameboard.is_checkmate():
-                                        checkmate = True
                                     else:
                                         secondmovelegalmoves = list(gameboard.legal_moves)
+                                        
+                                        #Set Initial Probability of Check and Draw to 0
                                         secondmovedrawposibilities = list()
                                         secondmovecheckposibilities = list()
                                         for secondwhitemove in gameboard.legal_moves:
+                                            #Set Initial Probability of Check and Draw to 0
                                             secondmovedrawposibilities.append(0)
                                             secondmovecheckposibilities.append(0)
+                                            
+                                            #Play Next Move (fourth move)
                                             gameboard.push(secondwhitemove)
+                                            
+                                            #If the Move leads to a Draw set the Probability of a Draw to 1
                                             if gameboard.can_claim_draw():
                                                 secondmovedrawposibilities[secondmovelegalmoves.index(secondwhitemove)] = 1
+                                            #If the Move leads to a Checkmate set the Probability of a Draw to 1
                                             if gameboard.is_checkmate():
                                                 checkmate = True
                                                 secondmovecheckposibilities[secondmovelegalmoves.index(secondwhitemove)] = 1
                                             else:
                                                 for thirdblackmove in gameboard.legal_moves:
+                                                    #Play Next Move (fifth move)
                                                     gameboard.push(thirdblackmove)
                                                     if gameboard.can_claim_draw():
                                                         secondmovedrawposibilities[secondmovelegalmoves.index(secondwhitemove)] = 1
                                                     gameboard.pop()
                                             gameboard.pop()
+                                        
+                                        #Calculate the Average Probability for the branch leading to a Draw, and Pass it to the initial Draw List
                                         secondmovedrawprobability = 0
                                         for i in secondmovedrawposibilities:
                                             secondmovedrawprobability += i
                                         secondmovedrawprobability = secondmovedrawprobability/len(secondmovedrawposibilities)
                                         firstmovedrawposibilities[firstmovelegalmoves.index(firstwhitemove)] = secondmovedrawprobability
                                        
+                                        #Calculate the Average Probability for the branch leading to a Checkmate, and Pass it to the initial Draw List
                                         secondmovecheckprobability = 0
                                         for i in secondmovecheckposibilities:
                                             secondmovecheckprobability += i
@@ -441,12 +523,15 @@ def game_move():
                                         firstmovecheckposibilities[firstmovelegalmoves.index(firstwhitemove)] = secondmovecheckprobability
                                     gameboard.pop()    
                            gameboard.pop()
+                       
+                       #Calculate the Average Probability for the branch leading to a Draw, and Pass it to the initial Draw List
                        firstdrawmoveprobability = 0
                        for i in firstmovedrawposibilities:
                            firstdrawmoveprobability += i
                        firstdrawmoveprobability = firstdrawmoveprobability/len(firstmovedrawposibilities)
                        drawposibilities[startblack.index(firstblackmove)] = firstdrawmoveprobability
                        
+                       #Calculate the Average Probability for the branch leading to a Draw, and Pass it to the initial Draw List
                        firstcheckprobability = 0
                        for i in firstmovecheckposibilities:
                            firstcheckprobability += i
@@ -455,18 +540,16 @@ def game_move():
                        
                    gameboard.pop()
                    
-               print(drawposibilities)
-               print(checkposibilities)
                biggestvalue = 0.0
                #Assign Next Black Move to the Move with the biggest probability of Drawing
                for i in drawposibilities:
                    if i > biggestvalue:
                        biggestvalue = i;
                        blackmove = startblack[drawposibilities.index(i)-1]
-               print(biggestvalue)
+
                #Tutor 6
-               if biggestvalue > 0:
-                   error += 'Black can draw in 2 Moves or Less <br>'
+               if biggestvalue > 0 and checkmove == '':
+                   error += 'Black can draw in 3 Moves or Less <br>'
                    
                #Try to move Black into the Middle if no Draw is possible in 3 moves
                if biggestvalue == 0:
@@ -530,10 +613,15 @@ def game_move():
                    blackmove = startblack[checkposibilities.index(lowestprobabilityofcheck)]
                
                #Tutor 7
-               if checkmate == True:
-                   error += 'Checkmate Possible within 2 Moves or Less of White <br>'
+               if checkmate == True :
+                   error += 'Checkmate Possible within 2 or less  Moves of White <br>'
                     
                gameboard.push(blackmove)
+               
+               #Tutor 5: Move away threatened piece
+               for square in range(64):
+                   if gameboard.piece_at(square) and gameboard.color_at(square) == chess.WHITE and gameboard.is_attacked_by(chess.BLACK, square):
+                       error += 'Must move piece threatened by Bare King <br>'
         
         return render_template('game.html', board = Markup(chess.svg.board(gameboard, size = 350)), errors = error)
 
